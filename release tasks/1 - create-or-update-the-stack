@@ -1,0 +1,25 @@
+##### Create or update the stack
+
+steps:
+- task: AmazonWebServices.aws-vsts-tools.CloudFormationCreateOrUpdateStack.CloudFormationCreateOrUpdateStack@1
+  displayName: 'Create/Update Stack: the-app-$(environment)'
+  inputs:
+    awsCredentials: 'Your AWS account'
+    regionName: 'eu-central-1'
+    stackName: 'the-app-$(environment)'
+    templateFile: '$(System.DefaultWorkingDirectory)/the-app-artifact-dir/drop/serverless.template'
+    s3BucketName: 'the-ci-cd-bucket'
+    templateParametersSource: inline
+    templateParameters: |
+     [{
+         "ParameterKey": "BucketWebSiteName",
+         "ParameterValue": "the-app-$(environment)"
+      },
+      {
+         "ParameterKey": "HostedZone",
+         "ParameterValue": "$(hostedZone)"
+      },
+      {
+         "ParameterKey": "CertificateId",
+         "ParameterValue": "$(certificateId)"
+      }]

@@ -1,0 +1,5 @@
+steps:
+- task: qetza.replacetokens.replacetokens-task.replacetokens@3
+  displayName: 'Replace tokens in **/.env.$(environment)'
+  inputs:
+    targetFiles: '**/.env.$(environment)'

@@ -1,0 +1,10 @@
+steps:
+- task: AmazonWebServices.aws-vsts-tools.AWSCLI.AWSCLI@1
+  displayName: 'clean up bucket'
+  inputs:
+    awsCredentials: 'Your AWS account'
+    regionName: 'your-region'
+    awsCommand: s3
+    awsSubCommand: ' rm'
+    awsArguments: 's3://the-app-$(environment) --recursive --exclude "sandbox/*" --exclude "logos/*"'
+    failOnStandardError: false

@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Metadata: 
+  License: Apache-2.0
+Description: 'AWS CloudFormation Sample Template S3_Website_With_CloudFront_Distribution'
+Parameters:
+  BucketWebSiteName:
+    Type: String
+    Description: The name for the bucket that will be deployed
+  HostedZone:
+    Type: String
+    Description: The DNS name of an existing Amazon Route 53 hosted zone
+    AllowedPattern: (?!-)[a-zA-Z0-9-.]{1,63}(?<!-)
+    ConstraintDescription: must be a valid DNS zone name.
+  CertificateId:
+    Type: String
+    Description: The Id of the certificate to be used
+    AllowedPattern: (?!-)[a-zA-Z0-9-.]{1,63}(?<!-)
+    ConstraintDescription: must be a valid Certificate Id in us east 1.    
+Mappings:
+  Region2S3WebsiteSuffix:
+     eu-central-1:
+      Suffix: .s3-website.eu-central-1.amazonaws.com
+Resources:
+  S3BucketForWebsiteContent:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: !Ref BucketWebSiteName
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+  WebsiteCDN:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: CDN for S3-backed website
+        Aliases:
+        - !Join ['', [!Ref 'AWS::StackName',
+            ., !Ref 'HostedZone']]
+        Enabled: 'true'
+        DefaultCacheBehavior:
+          ForwardedValues:
+            QueryString: 'true'
+          TargetOriginId: only-origin
+          ViewerProtocolPolicy: allow-all
+        DefaultRootObject: index.html
+        Origins:
+        - CustomOriginConfig:
+            HTTPPort: '80'
+            HTTPSPort: '443'
+            OriginProtocolPolicy: http-only
+          DomainName: !Join ['', [!Ref 'S3BucketForWebsiteContent', !FindInMap [Region2S3WebsiteSuffix,
+                !Ref 'AWS::Region', Suffix]]]
+          Id: only-origin
+        ViewerCertificate:
+          AcmCertificateArn: !Sub 'arn:aws:acm:us-east-1:[replace-with-your-account-id]:certificate/${CertificateId}'
+          MinimumProtocolVersion: 'TLSv1'
+          SslSupportMethod: 'sni-only'
+
+  WebsiteDNSName:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: !Join ['', [!Ref 'HostedZone', .]]
+      Comment: CNAME redirect custom name to CloudFront distribution
+      Name: !Join ['', [!Ref 'AWS::StackName',
+          ., !Ref 'HostedZone']]
+      Type: CNAME
+      TTL: '180'
+      ResourceRecords:
+      - !GetAtt [WebsiteCDN, DomainName]
+Outputs:
+  WebsiteURL:
+    Value: !Join ['', ['http://', !Ref 'WebsiteDNSName']]
+    Description: The URL of the newly created website
+  BucketName:
+    Value: !Ref 'S3BucketForWebsiteContent'
+    Description: Name of S3 bucket to hold website content
+  CloudFrontDistributionID:
+    Description: 'CloudFront distribution ID'
+    Value: !Ref WebsiteCDN

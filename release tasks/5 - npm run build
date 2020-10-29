@@ -1,0 +1,8 @@
+steps:
+- task: Npm@1
+  displayName: 'npm run build'
+  inputs:
+    command: custom
+    workingDir: '$(System.DefaultWorkingDirectory)/the-app-artifact-dir/drop'
+    verbose: true
+    customCommand: 'run build'
